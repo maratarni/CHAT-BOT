@@ -86,5 +86,6 @@ def chatbot():
         print("Chatbot:", raspuns)
 
 chatbot()
+print("paaa")
 
 # comentariu
