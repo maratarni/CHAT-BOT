@@ -39,17 +39,26 @@ def creeaza_dictionar_raspunsuri(cale_intrebari, cale_raspunsuri):
 
 
 #functia care mi permite sa pun si jumate din intrebare
-def find_best_match(user_input, intrebari):
-    # Folosește fuzzy matching pentru a găsi cea mai apropiată întrebare
-    best_match = process.extractOne(user_input, intrebari, scorer=fuzz.token_sort_ratio)
+def find_best_matches(user_input, intrebari, threshold=70):
+    """
+    Căutăm cele mai bune potriviri pentru întrebarea utilizatorului.
+    returnează întrebările care au un scor mai mare decât pragul.
+    """
+    matches = []
 
-    # Dacă similaritatea este suficient de mare, returnează întrebarea găsită
-    print(best_match)
+    # Iterăm prin întrebările din fișier și calculăm scorul pentru fiecare
+    for intrebare in intrebari:
+        # Comparăm întrebarea utilizatorului cu fiecare întrebare din fișier
+        scor = fuzz.token_sort_ratio(user_input, intrebare.lower())
 
-    print(best_match[0])
-    if best_match and best_match[1] > 60:
-        return best_match[0]
-    return None
+        # Dacă scorul este suficient de mare (pragul de 70)
+        if scor >= 60:
+            matches.append((intrebare, scor))
+
+    # Sortăm potrivirile după scor, în ordine descrescătoare
+    matches.sort(key=lambda x: x[1], reverse=True)
+
+    return matches
 
 
 def chatbot():
@@ -75,10 +84,12 @@ def chatbot():
             break
 
         # Caută răspunsul în dicționar
-        matching_question = find_best_match(user_input, intrebari)
+        matching_questions = find_best_matches(user_input, intrebari)
 
-        if matching_question:
-            index = intrebari.index(matching_question)
+        if matching_questions:
+            # Alege întrebarea cu cel mai bun scor
+            best_match_question = matching_questions[0][0]  # Prima potrivire
+            index = intrebari.index(best_match_question)
             raspuns = raspunsuri[index]
         else:
             raspuns = "Îmi pare rău, nu știu să răspund la această întrebare."
@@ -86,5 +97,5 @@ def chatbot():
         print("Chatbot:", raspuns)
 
 chatbot()
-print("paaa")
+
 # comentariu
