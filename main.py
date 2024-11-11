@@ -16,7 +16,7 @@ def citeste_word(cale_fisier):
         print(f"Eroare la citirea fișierului {cale_fisier}: {e}")
         return []
 
-
+#sunt DEnisa
 
 #ia fiecare paragraf corespunzator intrebarii cu fiecare rasp care se afla exact la paragraful ala si il returneaza
 def creeaza_dictionar_raspunsuri(cale_intrebari, cale_raspunsuri):
