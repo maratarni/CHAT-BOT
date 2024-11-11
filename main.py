@@ -26,8 +26,8 @@ def creeaza_dictionar_raspunsuri(cale_intrebari, cale_raspunsuri):
         return {}
 
     # Citește întrebările și răspunsurile
-    intrebari = citeste_word("C:/FACULTATE/futuo/intrebari.docx")
-    raspunsuri = citeste_word("C:/FACULTATE/futuo/raspunsuri.docx")
+    intrebari = citeste_word("/Users/silvanburcea/Desktop/incercari/intrebari.docx")
+    raspunsuri = citeste_word("/Users/silvanburcea/Desktop/incercari/raspunsuri.docx")
     # SUNT ALIN IN ACEST REPO SI TESTEZ SI CU SILVAN
 
     # Verifică dacă numărul de întrebări și răspunsuri este egal
@@ -65,11 +65,11 @@ def find_best_matches(user_input, intrebari, threshold=70):
 def chatbot():
 
     # Specificați căile către fișierele Word
-    intrebari = citeste_word("C:/FACULTATE/futuo/intrebari.docx")
-    raspunsuri = citeste_word("C:/FACULTATE/futuo/raspunsuri.docx")
+    intrebari = citeste_word("/Users/silvanburcea/Desktop/incercari/intrebari.docx")
+    raspunsuri = citeste_word("/Users/silvanburcea/Desktop/incercari/raspunsuri.docx")
 
     # Creează dicționarul de răspunsuri
-    responses = creeaza_dictionar_raspunsuri("C:/FACULTATE/futuo/intrebari.docx", "C:/FACULTATE/futuo/raspunsuri.docx")
+    responses = creeaza_dictionar_raspunsuri("/Users/silvanburcea/Desktop/incercari/intrebari.docx", "/Users/silvanburcea/Desktop/incercari/raspunsuri.docx")
 
     if not responses:
         print("Nu s-a putut initializa chatbot-ul!")
