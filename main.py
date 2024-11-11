@@ -28,8 +28,6 @@ def creeaza_dictionar_raspunsuri(cale_intrebari, cale_raspunsuri):
     # Citește întrebările și răspunsurile
     intrebari = citeste_word("C:/FACULTATE/futuo/intrebari.docx")
     raspunsuri = citeste_word("C:/FACULTATE/futuo/raspunsuri.docx")
-    # SUNT ALIN IN ACEST REPO SI TESTEZ
-    # AS VREA SA DAU COMMIT DOAR
 
     # Verifică dacă numărul de întrebări și răspunsuri este egal
     if len(intrebari) != len(raspunsuri):
