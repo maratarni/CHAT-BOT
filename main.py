@@ -2,8 +2,11 @@ from docx import Document
 import os
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
+import eel
 
+eel.init('interfata_chatbot')
 
+@eel.expose
 
 #imi citeste datele din word daca poate si daca nu imi zice ca nu poate
 def citeste_word(cale_fisier):
@@ -16,8 +19,8 @@ def citeste_word(cale_fisier):
         print(f"Eroare la citirea fișierului {cale_fisier}: {e}")
         return []
 
-#sunt DEnisa
 
+@eel.expose
 #ia fiecare paragraf corespunzator intrebarii cu fiecare rasp care se afla exact la paragraful ala si il returneaza
 def creeaza_dictionar_raspunsuri(cale_intrebari, cale_raspunsuri):
     # Verifică dacă fișierele există
@@ -28,7 +31,6 @@ def creeaza_dictionar_raspunsuri(cale_intrebari, cale_raspunsuri):
     # Citește întrebările și răspunsurile
     intrebari = citeste_word("C:/FACULTATE/futuo/intrebari.docx")
     raspunsuri = citeste_word("C:/FACULTATE/futuo/raspunsuri.docx")
-    # SUNT ALIN IN ACEST REPO SI TESTEZ
 
     # Verifică dacă numărul de întrebări și răspunsuri este egal
     if len(intrebari) != len(raspunsuri):
@@ -38,7 +40,7 @@ def creeaza_dictionar_raspunsuri(cale_intrebari, cale_raspunsuri):
     # Creează dicționarul
     return {intrebari[i].lower(): raspunsuri[i] for i in range(len(intrebari))}
 
-
+@eel.expose
 #functia care mi permite sa pun si jumate din intrebare
 def find_best_matches(user_input, intrebari, threshold=70):
     """
@@ -61,7 +63,7 @@ def find_best_matches(user_input, intrebari, threshold=70):
 
     return matches
 
-
+@eel.expose
 def chatbot():
 
     # Specificați căile către fișierele Word
@@ -97,7 +99,7 @@ def chatbot():
 
         print("Chatbot:", raspuns)
 
+eel.start('index.html', size=(800,600))
 chatbot()
-
+#mara la butosnr
 # comentariu
-#mara
