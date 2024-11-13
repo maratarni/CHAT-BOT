@@ -2,7 +2,11 @@ from docx import Document
 import os
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
+import eel
 
+
+# Initializam un server eel cu pagina web din folderul 'web' 
+eel.init('web')
 
 
 #imi citeste datele din word daca poate si daca nu imi zice ca nu poate
@@ -25,8 +29,8 @@ def creeaza_dictionar_raspunsuri(cale_intrebari, cale_raspunsuri):
         return {}
 
     # Citește întrebările și răspunsurile
-    intrebari = citeste_word("C:/FACULTATE/futuo/intrebari.docx")
-    raspunsuri = citeste_word("C:/FACULTATE/futuo/raspunsuri.docx")
+    intrebari = citeste_word("intrebari.docx")
+    raspunsuri = citeste_word("raspunsuri.docx")
 
     # Verifică dacă numărul de întrebări și răspunsuri este egal
     if len(intrebari) != len(raspunsuri):
@@ -60,14 +64,15 @@ def find_best_matches(user_input, intrebari, threshold=70):
     return matches
 
 
-def chatbot():
+@eel.expose
+def chatbot(user_input):
 
     # Specificați căile către fișierele Word
-    intrebari = citeste_word("C:/FACULTATE/futuo/intrebari.docx")
-    raspunsuri = citeste_word("C:/FACULTATE/futuo/raspunsuri.docx")
+    intrebari = citeste_word("intrebari.docx")
+    raspunsuri = citeste_word("raspunsuri.docx")
 
     # Creează dicționarul de răspunsuri
-    responses = creeaza_dictionar_raspunsuri("C:/FACULTATE/futuo/intrebari.docx", "C:/FACULTATE/futuo/raspunsuri.docx")
+    responses = creeaza_dictionar_raspunsuri("intrebari.docx", "raspunsuri.docx")
 
     if not responses:
         print("Nu s-a putut initializa chatbot-ul!")
@@ -76,7 +81,7 @@ def chatbot():
     print("Chatbot inițializat! Tastează 'exit' pentru a ieși.")
 #aici e magia
     while True:
-        user_input = input("Tu: ").lower()
+        # user_input = input("Tu: ").lower()
 
         if user_input == 'exit':
             print("La revedere!")
@@ -93,9 +98,11 @@ def chatbot():
         else:
             raspuns = "Îmi pare rău, nu știu să răspund la această întrebare."
 
-        print("Chatbot:", raspuns)
+        # print("Chatbot:", raspuns)
+        return raspuns
 
-chatbot()
+# chatbot()
 
+eel.start('index.html', size=(1920, 1080))
 # am modificat in new branch
 
