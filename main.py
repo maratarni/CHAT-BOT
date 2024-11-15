@@ -2,8 +2,7 @@ from docx import Document
 import os
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
-
-
+import ctypes
 
 #imi citeste datele din word daca poate si daca nu imi zice ca nu poate
 def citeste_word(cale_fisier):
@@ -84,6 +83,11 @@ def chatbot():
             print("La revedere!")
             break
 
+        if user_input == 'what day is today?':
+            functions = ctypes.CDLL('./functions.so')
+            functions.date()
+            break
+            
         # Caută răspunsul în dicționar
         matching_questions = find_best_matches(user_input, intrebari)
 
