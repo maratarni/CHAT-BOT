@@ -3,10 +3,20 @@ import os
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
 import eel
+import sys
 
+def get_resource_path(relative_path):
+    """Găsește calea către resurse în cazul executabilului PyInstaller."""
+    if hasattr(sys, '_MEIPASS'):
+        # PyInstaller stochează resursele în _MEIPASS
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
 
-# Initializam un server eel cu pagina web din folderul 'web' 
-eel.init('web')
+# Initializam un server eel cu pagina web din folderul 'web'
+docx_path1 = get_resource_path('raspunsuri.docx') 
+docx_path2 = get_resource_path('intrebari.docx') 
+web_folder = get_resource_path('web')
+eel.init(web_folder)
 
 
 #imi citeste datele din word daca poate si daca nu imi zice ca nu poate
@@ -29,8 +39,8 @@ def creeaza_dictionar_raspunsuri(cale_intrebari, cale_raspunsuri):
         return {}
 
     # Citește întrebările și răspunsurile
-    intrebari = citeste_word("intrebari.docx")
-    raspunsuri = citeste_word("raspunsuri.docx")
+    intrebari = citeste_word(docx_path2)
+    raspunsuri = citeste_word(docx_path1)
 
     # Verifică dacă numărul de întrebări și răspunsuri este egal
     if len(intrebari) != len(raspunsuri):
@@ -68,11 +78,11 @@ def find_best_matches(user_input, intrebari, threshold=70):
 def chatbot(user_input):
 
     # Specificați căile către fișierele Word
-    intrebari = citeste_word("intrebari.docx")
-    raspunsuri = citeste_word("raspunsuri.docx")
+    intrebari = citeste_word(docx_path2)
+    raspunsuri = citeste_word(docx_path1)
 
     # Creează dicționarul de răspunsuri
-    responses = creeaza_dictionar_raspunsuri("intrebari.docx", "raspunsuri.docx")
+    responses = creeaza_dictionar_raspunsuri(docx_path2, docx_path1)
 
     if not responses:
         print("Nu s-a putut initializa chatbot-ul!")
