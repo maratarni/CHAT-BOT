@@ -3,6 +3,8 @@ import os
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
 import eel
+import my_function
+
 
 eel.init('interfata_chatbot')
 
@@ -102,3 +104,4 @@ def chatbot():
 #eel.start('index.html', size=(800,600))
 chatbot()
 
+my_function.date()
