@@ -101,5 +101,4 @@ def chatbot():
 
 eel.start('index.html', size=(800,600))
 chatbot()
-#mara la butosnr
-# comentariu
+
