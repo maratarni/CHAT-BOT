@@ -7,7 +7,16 @@ import eel
 import ctypes
 
 #aici importam functia noastra
-clibary=ctypes.CDLL("C:/FACULTATE/futuo/CHAT-BOT/my_function.dll")
+lib = ctypes.CDLL("C:/FACULTATE/futuo/CHAT-BOT/my_function.dll")
+
+# Definește semnăturile funcțiilor
+lib.my_function.argtypes = [ctypes.c_int, ctypes.c_int]
+lib.my_function.restype = ctypes.c_int  # Returnează un C-string
+lib.date.restype = ctypes.c_char_p
+
+# Apelează funcția
+result = lib.date()  # Obține data ca un C-string
+print(result.decode('utf-8'))
 
 #imi citeste datele din word daca poate si daca nu imi zice ca nu poate
 def citeste_word(cale_fisier):
@@ -80,11 +89,6 @@ def chatbot():
     while True:
         user_input = input("Tu: ").lower()
 
-        # if user_imput == "what is the date today?":
-        #     # aici o apelam
-        #     something = clibrary.display
-        #     print(something)
-        #     break
         if user_input == 'exit':
             print("La revedere!")
             break
@@ -98,14 +102,15 @@ def chatbot():
             best_match_question = matching_questions[0][0]  # Prima potrivire
             index = intrebari.index(best_match_question)
             raspuns = raspunsuri[index]
+        elif user_input == 'data':
+            raspuns = result.decode('utf-8')
         else:
-            raspuns = "Îmi pare rău, nu știu să răspund la această întrebare."
+            raspuns = "I'm sorry, I don't know to response."
 
-        print("Chatbot:", raspuns)
-
+        # print("Chatbot:", raspuns)
+        return raspuns
 
 chatbot()
 
-clibrary.display()
 
 
