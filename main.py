@@ -5,6 +5,19 @@ from fuzzywuzzy import process
 import eel
 import sys
 
+import ctypes
+
+lib = ctypes.CDLL("./test.dll")
+
+# Definește semnăturile funcțiilor
+lib.test.argtypes = [ctypes.c_int, ctypes.c_int]
+lib.test.restype = ctypes.c_int  # Returnează un C-string
+lib.date.restype = ctypes.c_char_p
+
+# Apelează funcția
+result = lib.date()  # Obține data ca un C-string
+print(result.decode('utf-8')) 
+
 def get_resource_path(relative_path):
     """Găsește calea către resurse în cazul executabilului PyInstaller."""
     if hasattr(sys, '_MEIPASS'):
@@ -105,6 +118,8 @@ def chatbot(user_input):
             best_match_question = matching_questions[0][0]  # Prima potrivire
             index = intrebari.index(best_match_question)
             raspuns = raspunsuri[index]
+        elif user_input == 'data':
+            raspuns = result.decode('utf-8')
         else:
             raspuns = "Îmi pare rău, nu știu să răspund la această întrebare."
 
