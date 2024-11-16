@@ -3,12 +3,11 @@ import os
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
 import eel
-import my_function
+#import my_function
+import ctypes
 
-
-eel.init('interfata_chatbot')
-
-@eel.expose
+#aici importam functia noastra
+clibary=ctypes.CDLL("C:/FACULTATE/futuo/CHAT-BOT/my_function.dll")
 
 #imi citeste datele din word daca poate si daca nu imi zice ca nu poate
 def citeste_word(cale_fisier):
@@ -22,7 +21,6 @@ def citeste_word(cale_fisier):
         return []
 
 
-@eel.expose
 #ia fiecare paragraf corespunzator intrebarii cu fiecare rasp care se afla exact la paragraful ala si il returneaza
 def creeaza_dictionar_raspunsuri(cale_intrebari, cale_raspunsuri):
     # Verifică dacă fișierele există
@@ -42,7 +40,6 @@ def creeaza_dictionar_raspunsuri(cale_intrebari, cale_raspunsuri):
     # Creează dicționarul
     return {intrebari[i].lower(): raspunsuri[i] for i in range(len(intrebari))}
 
-@eel.expose
 #functia care mi permite sa pun si jumate din intrebare
 def find_best_matches(user_input, intrebari, threshold=70):
     """
@@ -65,7 +62,6 @@ def find_best_matches(user_input, intrebari, threshold=70):
 
     return matches
 
-@eel.expose
 def chatbot():
 
     # Specificați căile către fișierele Word
@@ -84,9 +80,15 @@ def chatbot():
     while True:
         user_input = input("Tu: ").lower()
 
+        # if user_imput == "what is the date today?":
+        #     # aici o apelam
+        #     something = clibrary.display
+        #     print(something)
+        #     break
         if user_input == 'exit':
             print("La revedere!")
             break
+
 
         # Caută răspunsul în dicționar
         matching_questions = find_best_matches(user_input, intrebari)
@@ -101,7 +103,9 @@ def chatbot():
 
         print("Chatbot:", raspuns)
 
-#eel.start('index.html', size=(800,600))
+
 chatbot()
 
-my_function.date()
+clibrary.display()
+
+
