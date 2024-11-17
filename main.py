@@ -1,10 +1,12 @@
 from docx import Document
-import os
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
 import eel
+import os
 #import my_function
 import ctypes
+
+
 
 #aici importam functia noastra
 lib = ctypes.CDLL("C:/FACULTATE/futuo/CHAT-BOT/my_function.dll")
@@ -81,16 +83,16 @@ def chatbot():
     responses = creeaza_dictionar_raspunsuri("C:/FACULTATE/futuo/CHAT-BOT/intrebari.docx", "C:/FACULTATE/futuo/CHAT-BOT/raspunsuri.docx")
 
     if not responses:
-        print("Nu s-a putut initializa chatbot-ul!")
+        print("The chatbot can not be initialized!")
         return
 
-    print("Chatbot inițializat! Tastează 'exit' pentru a ieși.")
+    print("Chatbot inițializat! Type 'exit' for the end of the conversation.")
 #aici e magia
     while True:
         user_input = input("Tu: ").lower()
 
         if user_input == 'exit':
-            print("La revedere!")
+            print("Good bye!")
             break
 
 
