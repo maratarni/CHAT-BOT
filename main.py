@@ -2,11 +2,38 @@ from docx import Document
 import os
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
+<<<<<<< HEAD
 import eel   
+=======
+import eel
+import sys
+>>>>>>> Modificari-Mara
 
+import ctypes
 
-# Initializam un server eel cu pagina web din folderul 'web' 
-eel.init('web')
+lib = ctypes.CDLL("./test.dll")
+
+# Definește semnăturile funcțiilor
+lib.test.argtypes = [ctypes.c_int, ctypes.c_int]
+lib.test.restype = ctypes.c_int  # Returnează un C-string
+lib.date.restype = ctypes.c_char_p
+
+# Apelează funcția
+result = lib.date()  # Obține data ca un C-string
+print(result.decode('utf-8'))
+
+def get_resource_path(relative_path):
+    """Găsește calea către resurse în cazul executabilului PyInstaller."""
+    if hasattr(sys, '_MEIPASS'):
+        # PyInstaller stochează resursele în _MEIPASS
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
+# Initializam un server eel cu pagina web din folderul 'web'
+docx_path1 = get_resource_path('raspunsuri.docx')
+docx_path2 = get_resource_path('intrebari.docx')
+web_folder = get_resource_path('web')
+eel.init(web_folder)
 
 
 #imi citeste datele din word daca poate si daca nu imi zice ca nu poate
@@ -29,8 +56,8 @@ def creeaza_dictionar_raspunsuri(cale_intrebari, cale_raspunsuri):
         return {}
 
     # Citește întrebările și răspunsurile
-    intrebari = citeste_word("intrebari.docx")
-    raspunsuri = citeste_word("raspunsuri.docx")
+    intrebari = citeste_word(docx_path2)
+    raspunsuri = citeste_word(docx_path1)
 
     # Verifică dacă numărul de întrebări și răspunsuri este egal
     if len(intrebari) != len(raspunsuri):
@@ -68,11 +95,11 @@ def find_best_matches(user_input, intrebari, threshold=70):
 def chatbot(user_input):
 
     # Specificați căile către fișierele Word
-    intrebari = citeste_word("intrebari.docx")
-    raspunsuri = citeste_word("raspunsuri.docx")
+    intrebari = citeste_word(docx_path2)
+    raspunsuri = citeste_word(docx_path1)
 
     # Creează dicționarul de răspunsuri
-    responses = creeaza_dictionar_raspunsuri("intrebari.docx", "raspunsuri.docx")
+    responses = creeaza_dictionar_raspunsuri(docx_path2, docx_path1)
 
     if not responses:
         print("Nu s-a putut initializa chatbot-ul!")
@@ -95,6 +122,8 @@ def chatbot(user_input):
             best_match_question = matching_questions[0][0]  # Prima potrivire
             index = intrebari.index(best_match_question)
             raspuns = raspunsuri[index]
+        elif user_input == 'data':
+            raspuns = result.decode('utf-8')
         else:
             raspuns = "Îmi pare rău, nu știu să răspund la această întrebare."
 
@@ -105,4 +134,3 @@ def chatbot(user_input):
 
 eel.start('index.html', size=(1920, 1080))
 # am modificat in new branch
-
