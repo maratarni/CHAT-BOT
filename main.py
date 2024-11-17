@@ -1,24 +1,9 @@
 from docx import Document
+import os
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
-import eel
-import os
-#import my_function
-import ctypes
 
 
-
-#aici importam functia noastra
-lib = ctypes.CDLL("C:/FACULTATE/futuo/CHAT-BOT/my_function.dll")
-
-# Definește semnăturile funcțiilor
-lib.my_function.argtypes = [ctypes.c_int, ctypes.c_int]
-lib.my_function.restype = ctypes.c_int  # Returnează un C-string
-lib.date.restype = ctypes.c_char_p
-
-# Apelează funcția
-result = lib.date()  # Obține data ca un C-string
-print(result.decode('utf-8'))
 
 #imi citeste datele din word daca poate si daca nu imi zice ca nu poate
 def citeste_word(cale_fisier):
@@ -40,8 +25,8 @@ def creeaza_dictionar_raspunsuri(cale_intrebari, cale_raspunsuri):
         return {}
 
     # Citește întrebările și răspunsurile
-    intrebari = citeste_word("C:/FACULTATE/futuo/CHAT-BOT/intrebari.docx")
-    raspunsuri = citeste_word("C:/FACULTATE/futuo/CHAT-BOT/raspunsuri.docx")
+    intrebari = citeste_word("C:/FACULTATE/futuo/intrebari.docx")
+    raspunsuri = citeste_word("C:/FACULTATE/futuo/raspunsuri.docx")
 
     # Verifică dacă numărul de întrebări și răspunsuri este egal
     if len(intrebari) != len(raspunsuri):
@@ -50,6 +35,7 @@ def creeaza_dictionar_raspunsuri(cale_intrebari, cale_raspunsuri):
 
     # Creează dicționarul
     return {intrebari[i].lower(): raspunsuri[i] for i in range(len(intrebari))}
+
 
 #functia care mi permite sa pun si jumate din intrebare
 def find_best_matches(user_input, intrebari, threshold=70):
@@ -73,28 +59,28 @@ def find_best_matches(user_input, intrebari, threshold=70):
 
     return matches
 
+
 def chatbot():
 
     # Specificați căile către fișierele Word
-    intrebari = citeste_word("C:/FACULTATE/futuo/CHAT-BOT/intrebari.docx")
-    raspunsuri = citeste_word("C:/FACULTATE/futuo/CHAT-BOT/raspunsuri.docx")
+    intrebari = citeste_word("C:/FACULTATE/futuo/intrebari.docx")
+    raspunsuri = citeste_word("C:/FACULTATE/futuo/raspunsuri.docx")
 
     # Creează dicționarul de răspunsuri
-    responses = creeaza_dictionar_raspunsuri("C:/FACULTATE/futuo/CHAT-BOT/intrebari.docx", "C:/FACULTATE/futuo/CHAT-BOT/raspunsuri.docx")
+    responses = creeaza_dictionar_raspunsuri("C:/FACULTATE/futuo/intrebari.docx", "C:/FACULTATE/futuo/raspunsuri.docx")
 
     if not responses:
-        print("The chatbot can not be initialized!")
+        print("Nu s-a putut initializa chatbot-ul!")
         return
 
-    print("Chatbot inițializat! Type 'exit' for the end of the conversation.")
+    print("Chatbot inițializat! Tastează 'exit' pentru a ieși.")
 #aici e magia
     while True:
         user_input = input("Tu: ").lower()
 
         if user_input == 'exit':
-            print("Good bye!")
+            print("La revedere!")
             break
-
 
         # Caută răspunsul în dicționar
         matching_questions = find_best_matches(user_input, intrebari)
@@ -104,15 +90,10 @@ def chatbot():
             best_match_question = matching_questions[0][0]  # Prima potrivire
             index = intrebari.index(best_match_question)
             raspuns = raspunsuri[index]
-        elif user_input == 'data':
-            raspuns = result.decode('utf-8')
         else:
-            raspuns = "I'm sorry, I don't know to response."
+            raspuns = "Îmi pare rău, nu știu să răspund la această întrebare."
 
-        # print("Chatbot:", raspuns)
-        return raspuns
+        print("Chatbot:", raspuns)
 
 chatbot()
-
-
 
