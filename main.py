@@ -2,7 +2,7 @@ from docx import Document
 import os
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
-import eel
+import eel   
 
 
 # Initializam un server eel cu pagina web din folderul 'web' 
