@@ -2,17 +2,15 @@ from docx import Document
 import os
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
-<<<<<<< HEAD
+
 import eel   
-=======
 import eel
 import sys
->>>>>>> Modificari-Mara
+
 
 import ctypes
 
 lib = ctypes.CDLL("./test.dll")
-
 # Definește semnăturile funcțiilor
 lib.test.argtypes = [ctypes.c_int, ctypes.c_int]
 lib.test.restype = ctypes.c_int  # Returnează un C-string
