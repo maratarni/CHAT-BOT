@@ -41,8 +41,8 @@ body {
 /* Chatbot container */
 .chatbot {
     position:fixed;
-    right: 5%; /* Margin of 5% from right */
-    bottom: 10%; /* Margin of 10% from bottom */
+    right: 23%; /* Margin of 5% from right */
+    bottom: 15%; /* Margin of 10% from bottom */
     width: 90%; /* Occupies 90% of the screen width */
     max-width: 820px;
     transform: scale(0.5);
