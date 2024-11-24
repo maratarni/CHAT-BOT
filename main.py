@@ -2,6 +2,7 @@ from docx import Document
 import os
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
+import io
 
 import eel   
 import eel
@@ -103,7 +104,7 @@ def chatbot(user_input):
         print("Nu s-a putut initializa chatbot-ul!")
         return
 
-    print("Chatbot inițializat! Tastează 'exit' pentru a ieși.")
+    #print("Chatbot inițializat! Tastează 'exit' pentru a ieși.")
 #aici e magia
     while True:
         # user_input = input("Tu: ").lower()

@@ -1,14 +1,17 @@
+// Selecting key DOM elements: input textarea for user messages, send button, and chatbox
 const chatInput = document.querySelector(".chat-input textarea");
 const sendChatBtn = document.querySelector(".chat-input span");
 const chatbox = document.querySelector(".chatbox");
 
 let userMessage;
-// const API_KEY= "secret_key"; //pe care ar trebui eu sa o iau de pe site
 
+// Function to create a chat list item (li) dynamically
 const createChatLi = (message, className) => {
-  //create a chat <li> element with passed message and className
+   // Create a new list item element and assign it a class based on the type of message
   const chatLi = document.createElement("li");
   chatLi.classList.add("chat", className);
+
+
   let chatContent =
     className === "outgoing"
       ? `<p>${message}</p>`
@@ -27,27 +30,28 @@ const handleChat = () => {
   async function apelareTest() {
     // Apelează funcția Python și așteaptă răspunsul
     const raspuns = await eel.chatbot(userMessage)();
+    //afisam mesajul "thinking..."
+    const thinkingMessage = createChatLi("Thinking...", "incoming");
+    chatbox.appendChild(thinkingMessage);
+    chatbox.scrollTo(0, chatbox.scrollHeight);
+
+    //Dupa 2 secunde eliminam "Thinking..." si afisam raspunsul
 
     // Afișează rezultatul în elementul cu id-ul "result"
     setTimeout(() => {
       //Display thinking message while waiting for the respons
-      chatbox.appendChild(createChatLi("Thinking...", "incoming"));
-      chatbox.appendChild(createChatLi(raspuns, "incoming"));
-
-      //   raspunsuri.forEach((raspuns) => {
-      //     chatbox.appendChild(createChatLi(raspuns, "incoming"));
-      //   });
-      chatbox.appendChild(incomingChatLi);
+      chatbox.removeChild(thinkingMessage); //eliminam thinking
+      chatbox.appendChild(createChatLi(raspuns, "incoming")); //adaugam raspunsul
       chatbox.scrollTo(0, chatbox.scrollHeight);
-      // generateResponse(incomingChatLi);
-    }, 600);
+    }, 1000);
   }
 
   apelareTest();
 };
 sendChatBtn.addEventListener("click", handleChat);
 
-//acum adaugam iconita in fata mesajelor trimise
+
+// DOMContentLoaded to handle outgoing messages and "Enter" functionality
 document.addEventListener("DOMContentLoaded", () => {
   const chatInput = document.querySelector(".chat-input textarea");
   const chatBox = document.querySelector(".chatbox");
