@@ -9,23 +9,27 @@ import ctypes
 
 lib = ctypes.CDLL("./test.dll")
 
-# Definește semnăturile funcțiilor
+# Definește semnăturile funcțiilor  
+# Defines the functions' signatures
 lib.test.argtypes = [ctypes.c_int, ctypes.c_int]
-lib.test.restype = ctypes.c_int  # Returnează un C-string
+lib.test.restype = ctypes.c_int  # Returnează un C-string   Returns a C-string
 lib.date.restype = ctypes.c_char_p
 
-# Apelează funcția
-result = lib.date()  # Obține data ca un C-string
+# Apelează funcția  
+# Call the function
+result = lib.date()  # Obține data ca un C-string   Obtains the date as a C-string
 print(result.decode('utf-8')) 
 
 def get_resource_path(relative_path):
-    """Găsește calea către resurse în cazul executabilului PyInstaller."""
+    """Finds the path to resources in the case of the PyInstaller executable."""
     if hasattr(sys, '_MEIPASS'):
-        # PyInstaller stochează resursele în _MEIPASS
+        # PyInstaller stochează resursele în _MEIPASS  
+        # PyInstaller stores the resources in _MEIPASS 
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.abspath("."), relative_path)
 
-# Initializam un server eel cu pagina web din folderul 'web'
+# Initializam un server eel cu pagina web din folderul 'web' 
+# Initialize an eel server with the web page from the 'web folder'
 docx_path1 = get_resource_path('raspunsuri.docx') 
 docx_path2 = get_resource_path('intrebari.docx') 
 web_folder = get_resource_path('web')
@@ -33,55 +37,69 @@ eel.init(web_folder)
 
 
 #imi citeste datele din word daca poate si daca nu imi zice ca nu poate
-def citeste_word(cale_fisier):
+#checks if the word document can be read and extracts the data from it
+def read_word(file_path):
     try:
-        doc = Document(cale_fisier)
-        paragraf_text = [paragraph.text.strip() for paragraph in doc.paragraphs if paragraph.text.strip()]
+        doc = Document(file_path)
+        paragraph_text = [paragraph.text.strip() for paragraph in doc.paragraphs if paragraph.text.strip()]
         #print(f"Conținutul fișierului {cale_fisier}: {paragraf_text}")
-        return paragraf_text
+        return paragraph_text
     except Exception as e:
-        print(f"Eroare la citirea fișierului {cale_fisier}: {e}")
+        print(f"Error reading file {file_path}: {e}")
         return []
 
 
 #ia fiecare paragraf corespunzator intrebarii cu fiecare rasp care se afla exact la paragraful ala si il returneaza
-def creeaza_dictionar_raspunsuri(cale_intrebari, cale_raspunsuri):
-    # Verifică dacă fișierele există
-    if not os.path.exists(cale_intrebari) or not os.path.exists(cale_raspunsuri):
-        print("Unul sau ambele fișiere nu există!")
+#links questions to answers by aligning them with the same paragraph from the 2 databases
+def create_answers_dictionary(questions_path, answers_path):
+    # Verifică dacă fișierele există 
+    # Verifies if the files exist
+    if not os.path.exists(questions_path) or not os.path.exists(answers_path):
+        print("One or both files do not exist!")
         return {}
 
-    # Citește întrebările și răspunsurile
-    intrebari = citeste_word(docx_path2)
-    raspunsuri = citeste_word(docx_path1)
+    # Citește întrebările și răspunsurile 
+    # Reads the questions and answers
+    questions = read_word(docx_path2)
+    answers = read_word(docx_path1)
 
     # Verifică dacă numărul de întrebări și răspunsuri este egal
-    if len(intrebari) != len(raspunsuri):
-        print("Numărul de întrebări nu corespunde cu numărul de răspunsuri!")
+    # Verifies if the number of questions matches the number of answers
+    if len(questions) != len(answers):
+        print("The number of questions does not match the number of answers!")
         return {}
 
-    # Creează dicționarul
-    return {intrebari[i].lower(): raspunsuri[i] for i in range(len(intrebari))}
+    # Creează dicționarul 
+    # Creates the dictionary
+    return {questions[i].lower(): answers[i] for i in range(len(questions))}
 
 
-#functia care mi permite sa pun si jumate din intrebare
-def find_best_matches(user_input, intrebari, threshold=70):
+#functia care mi permite sa pun si jumate din intrebare 
+#function that allows partial or similar questions to be matched to their correct answers
+#function
+def find_best_matches(user_input, questions, threshold=70):
     """
     Căutăm cele mai bune potriviri pentru întrebarea utilizatorului.
     returnează întrebările care au un scor mai mare decât pragul.
+    Finds the best matches for the user's question.
+    Returns the questions with a greater score than the threshold.
     """
     matches = []
 
-    # Iterăm prin întrebările din fișier și calculăm scorul pentru fiecare
-    for intrebare in intrebari:
-        # Comparăm întrebarea utilizatorului cu fiecare întrebare din fișier
-        scor = fuzz.token_sort_ratio(user_input, intrebare.lower())
+    # Iterăm prin întrebările din fișier și calculăm scorul pentru fiecare 
+    # We iterate through the questions in the file and calculate the score for each one
+    for question in questions:
+        # Comparăm întrebarea utilizatorului cu fiecare întrebare din fișier 
+        # We compare the user's question with all the other questions from the database
+        score = fuzz.token_sort_ratio(user_input, question.lower())
 
-        # Dacă scorul este suficient de mare (pragul de 70)
-        if scor >= 60:
-            matches.append((intrebare, scor))
+        # Dacă scorul este suficient de mare (pragul de 70) 
+        # If the score is high enough (threshold is 70)
+        if score >= 60:
+            matches.append((question, score))
 
-    # Sortăm potrivirile după scor, în ordine descrescătoare
+    # Sortăm potrivirile după scor, în ordine descrescătoare 
+    # Sort the matches by score in decreasing order
     matches.sort(key=lambda x: x[1], reverse=True)
 
     return matches
@@ -91,40 +109,45 @@ def find_best_matches(user_input, intrebari, threshold=70):
 def chatbot(user_input):
 
     # Specificați căile către fișierele Word
-    intrebari = citeste_word(docx_path2)
-    raspunsuri = citeste_word(docx_path1)
+    # Specifiy the paths to the word documents
+    questions = read_word(docx_path2)
+    answers = read_word(docx_path1)
 
     # Creează dicționarul de răspunsuri
-    responses = creeaza_dictionar_raspunsuri(docx_path2, docx_path1)
+    # Creates the answers dictionary
+    responses = create_answers_dictionary(docx_path2, docx_path1)
 
     if not responses:
-        print("Nu s-a putut initializa chatbot-ul!")
+        print("Chatbot could not be initialized!")
         return
 
-    print("Chatbot inițializat! Tastează 'exit' pentru a ieși.")
+    print("Chatbot initialized! Press 'exit' to close.")
 #aici e magia
+#here comes the magic:))
     while True:
         # user_input = input("Tu: ").lower()
 
         if user_input == 'exit':
-            print("La revedere!")
+            print("See you!")
             break
 
         # Caută răspunsul în dicționar
-        matching_questions = find_best_matches(user_input, intrebari)
+        # Search the answer in the dictionary
+        matching_questions = find_best_matches(user_input, questions)
 
         if matching_questions:
             # Alege întrebarea cu cel mai bun scor
-            best_match_question = matching_questions[0][0]  # Prima potrivire
-            index = intrebari.index(best_match_question)
-            raspuns = raspunsuri[index]
+            # Choose  the questions with the best score
+            best_match_question = matching_questions[0][0]  # Prima potrivire First match
+            index = questions.index(best_match_question)
+            answer = answers[index]
         elif user_input == 'data':
-            raspuns = result.decode('utf-8')
+            answer = result.decode('utf-8')
         else:
-            raspuns = "Îmi pare rău, nu știu să răspund la această întrebare."
+            answer = "I'm sorry, I don't know how to answer this question."
 
         # print("Chatbot:", raspuns)
-        return raspuns
+        return answer
 
 # chatbot()
 
