@@ -1,106 +1,132 @@
 from docx import Document
 import os
 from fuzzywuzzy import fuzz
-from fuzzywuzzy import process
 import ctypes
 
-#imi citeste datele din word daca poate si daca nu imi zice ca nu poate
-def citeste_word(cale_fisier):
-    try:
-        doc = Document(cale_fisier)
-        paragraf_text = [paragraph.text.strip() for paragraph in doc.paragraphs if paragraph.text.strip()]
-        #print(f"Conținutul fișierului {cale_fisier}: {paragraf_text}")
-        return paragraf_text
-    except Exception as e:
-        print(f"Eroare la citirea fișierului {cale_fisier}: {e}")
-        return []
+class Chatbot:
+    def __init__(self, path_intrebari, path_raspunsuri, c_library_path):
+        self.path_intrebari = path_intrebari
+        self.path_raspunsuri = path_raspunsuri
+        self.c_library_path = c_library_path
+        self.intrebari = []
+        self.raspunsuri = []
+        self.responses = {}
+        self.c_library = None
+        self._initialize_chatbot()
+        self._load_c_library()
 
+    def _read_word_file(self, file_path):
+        """
+        Citește textul dintr-un fișier Word și returnează o listă de paragrafe.
+        """
+        try:
+            doc = Document(file_path)
+            return [paragraph.text.strip() for paragraph in doc.paragraphs if paragraph.text.strip()]
+        except Exception as e:
+            print(f"Eroare la citirea fișierului {file_path}: {e}")
+            return []
 
+    def _create_response_dict(self):
+        """
+        Creează un dicționar de răspunsuri bazat pe întrebări și răspunsuri citite.
+        """
+        if len(self.intrebari) != len(self.raspunsuri):
+            print("Numărul de întrebări nu corespunde cu numărul de răspunsuri!")
+            return {}
 
-#ia fiecare paragraf corespunzator intrebarii cu fiecare rasp care se afla exact la paragraful ala si il returneaza
-def creeaza_dictionar_raspunsuri(cale_intrebari, cale_raspunsuri):
-    # Verifică dacă fișierele există
-    if not os.path.exists(cale_intrebari) or not os.path.exists(cale_raspunsuri):
-        print("Unul sau ambele fișiere nu există!")
-        return {}
+        return {self.intrebari[i].lower(): self.raspunsuri[i] for i in range(len(self.intrebari))}
 
-    # Citește întrebările și răspunsurile
-    intrebari = citeste_word("/Users/silvanburcea/Desktop/CHATBOT/intrebari.docx")
-    raspunsuri = citeste_word("/Users/silvanburcea/Desktop/CHATBOT/raspunsuri.docx")
-    # SUNT ALIN IN ACEST REPO SI TESTEZ SI CU SILVAN
+    def _initialize_chatbot(self):
+        """
+        Inițializează chatbot-ul prin încărcarea întrebărilor și răspunsurilor din fișiere.
+        """
+        if not os.path.exists(self.path_intrebari) or not os.path.exists(self.path_raspunsuri):
+            print("Unul sau ambele fișiere nu există!")
+            return
 
-    # Verifică dacă numărul de întrebări și răspunsuri este egal
-    if len(intrebari) != len(raspunsuri):
-        print("Numărul de întrebări nu corespunde cu numărul de răspunsuri!")
-        return {}
+        self.intrebari = self._read_word_file(self.path_intrebari)
+        self.raspunsuri = self._read_word_file(self.path_raspunsuri)
+        self.responses = self._create_response_dict()
 
-    # Creează dicționarul
-    return {intrebari[i].lower(): raspunsuri[i] for i in range(len(intrebari))}
+    def _load_c_library(self):
+        """
+        Încarcă biblioteca C specificată în constructor.
+        """
+        try:
+            self.c_library = ctypes.CDLL(self.c_library_path)
+        except Exception as e:
+            print(f"Eroare la încărcarea bibliotecii C: {e}")
+            self.c_library = None
 
-
-#functia care mi permite sa pun si jumate din intrebare
-def find_best_matches(user_input, intrebari, threshold=70):
-    """
-    Căutăm cele mai bune potriviri pentru întrebarea utilizatorului.
-    returnează întrebările care au un scor mai mare decât pragul.
-    """
-    matches = []
-
-    # Iterăm prin întrebările din fișier și calculăm scorul pentru fiecare
-    for intrebare in intrebari:
-        # Comparăm întrebarea utilizatorului cu fiecare întrebare din fișier
-        scor = fuzz.token_sort_ratio(user_input, intrebare.lower())
-
-        # Dacă scorul este suficient de mare (pragul de 70)
-        if scor >= 60:
-            matches.append((intrebare, scor))
-
-    # Sortăm potrivirile după scor, în ordine descrescătoare
-    matches.sort(key=lambda x: x[1], reverse=True)
-
-    return matches
-
-
-def chatbot():
-
-    # Specificați căile către fișierele Word
-    intrebari = citeste_word("/Users/silvanburcea/Desktop/CHATBOT/intrebari.docx")
-    raspunsuri = citeste_word("/Users/silvanburcea/Desktop/CHATBOT/raspunsuri.docx")
-
-    # Creează dicționarul de răspunsuri
-    responses = creeaza_dictionar_raspunsuri("/Users/silvanburcea/Desktop/CHATBOT/intrebari.docx", "/Users/silvanburcea/Desktop/CHATBOT/raspunsuri.docx")
-
-    if not responses:
-        print("Nu s-a putut initializa chatbot-ul!")
-        return
-
-    print("Chatbot inițializat! Tastează 'exit' pentru a ieși.")
-#aici e magia
-    while True:
-        user_input = input("Tu: ").lower()
-
-        if user_input == 'exit':
-            print("La revedere!")
-            break
-
-        if user_input == 'what day is today?':
-            functions = ctypes.CDLL('./functions.so')
-            functions.date()
-            break
-            
-        # Caută răspunsul în dicționar
-        matching_questions = find_best_matches(user_input, intrebari)
-
-        if matching_questions:
-            # Alege întrebarea cu cel mai bun scor
-            best_match_question = matching_questions[0][0]  # Prima potrivire
-            index = intrebari.index(best_match_question)
-            raspuns = raspunsuri[index]
+    def call_c_function(self):
+        """
+        Apelează funcția `date()` din biblioteca C încărcată.
+        """
+        if self.c_library:
+            try:
+                self.c_library.date()
+            except AttributeError as e:
+                print(f"Funcția 'date' nu a fost găsită în biblioteca C: {e}")
         else:
-            raspuns = "Îmi pare rău, nu știu să răspund la această întrebare."
+            print("Biblioteca C nu este încărcată!")
 
-        print("Chatbot:", raspuns)
+    def _find_best_matches(self, user_input, threshold=70):
+        """
+        Găsește cele mai bune potriviri pentru întrebarea utilizatorului.
+        """
+        matches = []
 
-chatbot()
+        for intrebare in self.intrebari:
+            scor = fuzz.token_sort_ratio(user_input, intrebare.lower())
+            if scor >= threshold:
+                matches.append((intrebare, scor))
 
-# comentariu
+        matches.sort(key=lambda x: x[1], reverse=True)
+        return matches
+
+    def get_response(self, user_input):
+        """
+        Oferă un răspuns pe baza inputului utilizatorului.
+        """
+        user_input = user_input.lower()
+
+        if user_input == "exit":
+            return "La revedere!", True
+
+        if user_input == "what day is today?":
+            self.call_c_function()
+            return "Am apelat funcția C pentru a obține data de astăzi.", False
+
+        matching_questions = self._find_best_matches(user_input)
+        if matching_questions:
+            best_match_question = matching_questions[0][0]
+            index = self.intrebari.index(best_match_question)
+            return self.raspunsuri[index], False
+        else:
+            return "Îmi pare rău, nu știu să răspund la această întrebare.", False
+
+    def run(self):
+        """
+        Rulează interacțiunea principală cu utilizatorul.
+        """
+        if not self.responses:
+            print("Chatbot-ul nu a fost inițializat corect!")
+            return
+
+        print("Chatbot inițializat! Tastează 'exit' pentru a ieși.")
+        while True:
+            user_input = input("Tu: ")
+            response, should_exit = self.get_response(user_input)
+            print("Chatbot:", response)
+            if should_exit:
+                break
+
+
+# Exemplu de utilizare:
+if __name__ == "__main__":
+    PATH_INTREBARI = "/Users/silvanburcea/Desktop/CHATBOT/intrebari.docx"
+    PATH_RASPUNSURI = "/Users/silvanburcea/Desktop/CHATBOT/raspunsuri.docx"
+    C_LIBRARY_PATH = "./functions.so"  # Calea către biblioteca C
+
+    chatbot = Chatbot(PATH_INTREBARI, PATH_RASPUNSURI, C_LIBRARY_PATH)
+    chatbot.run()
