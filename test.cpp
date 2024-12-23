@@ -97,7 +97,7 @@ extern "C" {
         } else if (index >= 175 && index <= 179) {
             result = "Information extracted from Module12 part3";
         }
-        return result.c_str();  // Return the C-style string
+        return result.c_str();  // return the C-style string
     }
 } 
 
