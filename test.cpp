@@ -6,20 +6,12 @@ using namespace std;
 
 extern "C"
 {
-    int test(int a, int b)
-    {
-        return a + b;
-    }
-
-    const char *date()
-    {
+    const char *date() {
         time_t timp;
         time(&timp);
         return ctime(&timp);
     }
-}
 
-extern "C" {
     const char* identify_source_module(int index) {
         string result;
 
@@ -101,3 +93,5 @@ extern "C" {
     }
 } 
 
+}
+    
