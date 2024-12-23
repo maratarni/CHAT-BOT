@@ -1,132 +1,174 @@
-from docx import Document
+import json
 import os
 from fuzzywuzzy import fuzz
+import eel
+import sys
 import ctypes
+from platform import system
+from datetime import datetime
 
-class Chatbot:
-    def __init__(self, path_intrebari, path_raspunsuri, c_library_path):
-        self.path_intrebari = path_intrebari
-        self.path_raspunsuri = path_raspunsuri
-        self.c_library_path = c_library_path
-        self.intrebari = []
-        self.raspunsuri = []
-        self.responses = {}
-        self.c_library = None
-        self._initialize_chatbot()
-        self._load_c_library()
+class DateProvider:
+    def __init__(self, windows_dll="./test.dll", macos_lib="./test.so"):
+        self.lib = None
+        os_type = system()
+        
+        if os_type == 'Windows':
+            try:
+                self.lib = ctypes.CDLL(windows_dll)
+                self._configure()
+            except OSError as e:
+                print(f"Warning: Could not load DLL: {e}")
+        elif os_type == 'Darwin':  # Darwin is the system name for macOS
+            try:
+                self.lib = ctypes.CDLL(macos_lib)
+                self._configure()
+            except OSError as e:
+                print(f"Warning: Could not load shared library: {e}")
+    
+    def _configure(self):
+        """Configure library function signatures for both Windows DLL and macOS shared library"""
+        if self.lib:
+            try:
+                self.lib.test.argtypes = [ctypes.c_int, ctypes.c_int]
+                self.lib.test.restype = ctypes.c_int
+                self.lib.date.restype = ctypes.c_char_p
+                self.lib.identify_source_module.argtypes = [ctypes.c_int]
+                self.lib.identify_source_module.restype = ctypes.c_char_p
 
-    def _read_word_file(self, file_path):
-        """
-        Citește textul dintr-un fișier Word și returnează o listă de paragrafe.
-        """
+            except AttributeError as e:
+                print(f"Warning: Could not configure library functions: {e}")
+    
+    def get_date(self):
+        """Get current date from library or fallback to system date"""
+        if self.lib:
+            try:
+                result = self.lib.date()
+                return result.decode('utf-8')
+            except (AttributeError, Exception) as e:
+                print(f"Error getting date from library: {e}")
+        
+        # Fallback to system date
+        return datetime.now().strftime("%Y-%m-%d")
+
+class ResourceManager:
+    @staticmethod
+    def get_resource_path(relative_path):
+        """Find the path to resources for PyInstaller executable"""
+        if hasattr(sys, '_MEIPASS'):
+            return os.path.join(sys._MEIPASS, relative_path)
+        return os.path.join(os.path.abspath("."), relative_path)
+
+class DocumentReader:
+    @staticmethod
+    def read_questions(file_path):
+        """Read questions from JSON file"""
         try:
-            doc = Document(file_path)
-            return [paragraph.text.strip() for paragraph in doc.paragraphs if paragraph.text.strip()]
+            with open(file_path, 'r') as file:
+                data = json.load(file)
+                return [item['text'].strip() for item in data.get('questions', [])]
         except Exception as e:
-            print(f"Eroare la citirea fișierului {file_path}: {e}")
+            print(f"Error reading questions file {file_path}: {e}")
             return []
 
-    def _create_response_dict(self):
-        """
-        Creează un dicționar de răspunsuri bazat pe întrebări și răspunsuri citite.
-        """
-        if len(self.intrebari) != len(self.raspunsuri):
-            print("Numărul de întrebări nu corespunde cu numărul de răspunsuri!")
-            return {}
-
-        return {self.intrebari[i].lower(): self.raspunsuri[i] for i in range(len(self.intrebari))}
-
-    def _initialize_chatbot(self):
-        """
-        Inițializează chatbot-ul prin încărcarea întrebărilor și răspunsurilor din fișiere.
-        """
-        if not os.path.exists(self.path_intrebari) or not os.path.exists(self.path_raspunsuri):
-            print("Unul sau ambele fișiere nu există!")
-            return
-
-        self.intrebari = self._read_word_file(self.path_intrebari)
-        self.raspunsuri = self._read_word_file(self.path_raspunsuri)
-        self.responses = self._create_response_dict()
-
-    def _load_c_library(self):
-        """
-        Încarcă biblioteca C specificată în constructor.
-        """
+    @staticmethod
+    def read_answers(file_path):
+        """Read answers from JSON file"""
         try:
-            self.c_library = ctypes.CDLL(self.c_library_path)
+            with open(file_path, 'r') as file:
+                data = json.load(file)
+                return [item['text'].strip() for item in data.get('answers', [])]
         except Exception as e:
-            print(f"Eroare la încărcarea bibliotecii C: {e}")
-            self.c_library = None
+            print(f"Error reading answers file {file_path}: {e}")
+            return []
 
-    def call_c_function(self):
-        """
-        Apelează funcția `date()` din biblioteca C încărcată.
-        """
-        if self.c_library:
-            try:
-                self.c_library.date()
-            except AttributeError as e:
-                print(f"Funcția 'date' nu a fost găsită în biblioteca C: {e}")
-        else:
-            print("Biblioteca C nu este încărcată!")
-
-    def _find_best_matches(self, user_input, threshold=70):
-        """
-        Găsește cele mai bune potriviri pentru întrebarea utilizatorului.
-        """
+class QuestionMatcher:
+    @staticmethod
+    def find_best_matches(user_input, questions, threshold=60):
+        """Find the best matching questions for user input"""
         matches = []
-
-        for intrebare in self.intrebari:
-            scor = fuzz.token_sort_ratio(user_input, intrebare.lower())
-            if scor >= threshold:
-                matches.append((intrebare, scor))
-
+        for question in questions:
+            score = fuzz.token_sort_ratio(user_input, question.lower())
+            if score >= threshold:
+                matches.append((question, score))
+        
         matches.sort(key=lambda x: x[1], reverse=True)
         return matches
 
-    def get_response(self, user_input):
-        """
-        Oferă un răspuns pe baza inputului utilizatorului.
-        """
-        user_input = user_input.lower()
+class ChatbotDatabase:
+    def __init__(self, questions_path, answers_path):
+        self.questions_path = questions_path
+        self.answers_path = answers_path
+        self.doc_reader = DocumentReader()
+        self.questions = []
+        self.answers = []
+        self.responses = {}
+        self.load_data()
 
-        if user_input == "exit":
-            return "La revedere!", True
-
-        if user_input == "what day is today?":
-            self.call_c_function()
-            return "Am apelat funcția C pentru a obține data de astăzi.", False
-
-        matching_questions = self._find_best_matches(user_input)
-        if matching_questions:
-            best_match_question = matching_questions[0][0]
-            index = self.intrebari.index(best_match_question)
-            return self.raspunsuri[index], False
-        else:
-            return "Îmi pare rău, nu știu să răspund la această întrebare.", False
-
-    def run(self):
-        """
-        Rulează interacțiunea principală cu utilizatorul.
-        """
-        if not self.responses:
-            print("Chatbot-ul nu a fost inițializat corect!")
+    def load_data(self):
+        """Load and initialize the QA database"""
+        if not os.path.exists(self.questions_path) or not os.path.exists(self.answers_path):
+            print("One or both files do not exist!")
             return
 
-        print("Chatbot inițializat! Tastează 'exit' pentru a ieși.")
-        while True:
-            user_input = input("Tu: ")
-            response, should_exit = self.get_response(user_input)
-            print("Chatbot:", response)
-            if should_exit:
-                break
+        self.questions = self.doc_reader.read_questions(self.questions_path)
+        self.answers = self.doc_reader.read_answers(self.answers_path)
 
+        if len(self.questions) != len(self.answers):
+            print("The number of questions does not match the number of answers!")
+            return
 
-# Exemplu de utilizare:
+        self.responses = {q.lower(): a for q, a in zip(self.questions, self.answers)}
+
+class Chatbot:
+    def __init__(self):
+        resource_manager = ResourceManager()
+        self.json_path1 = resource_manager.get_resource_path('raspunsuri.json')
+        self.json_path2 = resource_manager.get_resource_path('intrebari.json')
+        self.web_folder = resource_manager.get_resource_path('web')
+        self.database = ChatbotDatabase(self.json_path2, self.json_path1)
+        self.date_provider = DateProvider()
+        self.matcher = QuestionMatcher()
+
+    def initialize_web(self):
+        """Initialize the eel web interface"""
+        eel.init(self.web_folder)
+
+    def process_input(self, user_input):
+        """Process user input and return appropriate response"""
+        if user_input == 'exit':
+            return "See you!"
+        
+        if user_input == 'data':
+            return self.date_provider.get_date()
+
+        matching_questions = self.matcher.find_best_matches(user_input, self.database.questions)
+        
+        if matching_questions:
+            best_match_question = matching_questions[0][0]
+            index = self.database.questions.index(best_match_question)
+            print(index)
+            # Call the C++ function to identify the source module
+            if 0 <= index <= 179:
+                if self.date_provider.lib:
+                    source = self.date_provider.lib.identify_source_module(index).decode('utf-8')
+                    print(source)
+                    return f"{self.database.answers[index]} (Source: {source})"
+            else:
+                return self.database.answers[index]
+        
+        return "I'm sorry, I don't know how to answer this question."
+
+def main():
+    chatbot = Chatbot()
+    chatbot.initialize_web()
+    
+    # Expose the process_input method to JavaScript
+    @eel.expose
+    def chatbot_response(user_input):
+        return chatbot.process_input(user_input)
+    
+    # Start the web application
+    eel.start('index.html', size=(1920, 1080))
+
 if __name__ == "__main__":
-    PATH_INTREBARI = "/Users/silvanburcea/Desktop/CHATBOT/intrebari.docx"
-    PATH_RASPUNSURI = "/Users/silvanburcea/Desktop/CHATBOT/raspunsuri.docx"
-    C_LIBRARY_PATH = "./functions.so"  # Calea către biblioteca C
-
-    chatbot = Chatbot(PATH_INTREBARI, PATH_RASPUNSURI, C_LIBRARY_PATH)
-    chatbot.run()
+    main()
