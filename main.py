@@ -29,8 +29,6 @@ class DateProvider:
         """Configure library function signatures for both Windows DLL and macOS shared library"""
         if self.lib:
             try:
-                self.lib.test.argtypes = [ctypes.c_int, ctypes.c_int]
-                self.lib.test.restype = ctypes.c_int
                 self.lib.date.restype = ctypes.c_char_p
                 self.lib.identify_source_module.argtypes = [ctypes.c_int]
                 self.lib.identify_source_module.restype = ctypes.c_char_p
