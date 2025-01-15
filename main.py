@@ -8,7 +8,7 @@ from platform import system
 from datetime import datetime
 
 class DateProvider:
-    def __init__(self, windows_dll="functions.dll", macos_lib="./functions.so"):
+    def __init__(self, windows_dll="./functions.dll", macos_lib="./functions.so"):
         self.lib = None
         os_type = system()
         
