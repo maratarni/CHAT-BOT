@@ -6,6 +6,9 @@ import sys
 import ctypes
 from platform import system
 from datetime import datetime
+import openai
+
+openai.api_key = "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"
 
 class DateProvider:
     def __init__(self, windows_dll="./functions.dll", macos_lib="./functions.so"):
@@ -131,6 +134,23 @@ class Chatbot:
         """Initialize the eel web interface"""
         eel.init(self.web_folder)
 
+    def query_openai(self, user_input):
+        """Interoghează OpenAI GPT pentru un răspuns"""
+        try:
+            # Noul format al interogării pentru GPT-4
+            response = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "Ești un asistent util care răspunde la întrebări."},
+                    {"role": "user", "content": user_input}
+                ],
+                max_tokens=150,
+                temperature=0.7
+            )
+            return response['choices'][0]['message']['content']
+        except Exception as e:
+            return f"Eroare în interogarea OpenAI: {e}"
+
     def process_input(self, user_input):
         """Process user input and return appropriate response"""
         if user_input == 'exit':
@@ -144,17 +164,16 @@ class Chatbot:
         if matching_questions:
             best_match_question = matching_questions[0][0]
             index = self.database.questions.index(best_match_question)
-            print(index)
             # Call the C++ function to identify the source module
             if 0 <= index <= 179:
                 if self.date_provider.lib:
                     source = self.date_provider.lib.identify_source_module(index).decode('utf-8')
-                    print(source)
                     return f"{self.database.answers[index]} (Source: {source})"
             else:
                 return self.database.answers[index]
         
-        return "I'm sorry, I don't know how to answer this question."
+        # Dacă nu există potriviri, apelează API-ul OpenAI
+        return self.query_openai(user_input)
 
 def main():
     chatbot = Chatbot()
