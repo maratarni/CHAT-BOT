@@ -185,7 +185,7 @@ def main():
         return chatbot.process_input(user_input)
     
     # Start the web application
-    eel.start('index.html', size=(1920, 1080))
+    eel.start('index.html', size=(1920, 1080), port=0)
 
 if __name__ == "__main__":
     main()
