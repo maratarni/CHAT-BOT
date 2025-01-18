@@ -1,99 +1,191 @@
-from docx import Document
+import json
 import os
 from fuzzywuzzy import fuzz
-from fuzzywuzzy import process
+import eel
+import sys
+import ctypes
+from platform import system
+from datetime import datetime
+import openai
 
+openai.api_key = "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"
 
+class DateProvider:
+    def __init__(self, windows_dll="./functions.dll", macos_lib="./functions.so"):
+        self.lib = None
+        os_type = system()
+        
+        if os_type == 'Windows':
+            try:
+                self.lib = ctypes.CDLL(windows_dll)
+                self._configure()
+            except OSError as e:
+                print(f"Warning: Could not load DLL: {e}")
+        elif os_type == 'Darwin':  # Darwin is the system name for macOS
+            try:
+                self.lib = ctypes.CDLL(macos_lib)
+                self._configure()
+            except OSError as e:
+                print(f"Warning: Could not load shared library: {e}")
+    
+    def _configure(self):
+        """Configure library function signatures for both Windows DLL and macOS shared library"""
+        if self.lib:
+            try:
+                self.lib.date.restype = ctypes.c_char_p
+                self.lib.identify_source_module.argtypes = [ctypes.c_int]
+                self.lib.identify_source_module.restype = ctypes.c_char_p
 
-#imi citeste datele din word daca poate si daca nu imi zice ca nu poate
-def citeste_word(cale_fisier):
-    try:
-        doc = Document(cale_fisier)
-        paragraf_text = [paragraph.text.strip() for paragraph in doc.paragraphs if paragraph.text.strip()]
-        #print(f"Conținutul fișierului {cale_fisier}: {paragraf_text}")
-        return paragraf_text
-    except Exception as e:
-        print(f"Eroare la citirea fișierului {cale_fisier}: {e}")
-        return []
+            except AttributeError as e:
+                print(f"Warning: Could not configure library functions: {e}")
+    
+    def get_date(self):
+        """Get current date from library or fallback to system date"""
+        if self.lib:
+            try:
+                result = self.lib.date()
+                return result.decode('utf-8')
+            except (AttributeError, Exception) as e:
+                print(f"Error getting date from library: {e}")
+        
+        # Fallback to system date
+        return datetime.now().strftime("%Y-%m-%d")
 
+class ResourceManager:
+    @staticmethod
+    def get_resource_path(relative_path):
+        """Find the path to resources for PyInstaller executable"""
+        if hasattr(sys, '_MEIPASS'):
+            return os.path.join(sys._MEIPASS, relative_path)
+        return os.path.join(os.path.abspath("."), relative_path)
 
-#ia fiecare paragraf corespunzator intrebarii cu fiecare rasp care se afla exact la paragraful ala si il returneaza
-def creeaza_dictionar_raspunsuri(cale_intrebari, cale_raspunsuri):
-    # Verifică dacă fișierele există
-    if not os.path.exists(cale_intrebari) or not os.path.exists(cale_raspunsuri):
-        print("Unul sau ambele fișiere nu există!")
-        return {}
+class DocumentReader:
+    @staticmethod
+    def read_questions(file_path):
+        """Read questions from JSON file"""
+        try:
+            with open(file_path, 'r') as file:
+                data = json.load(file)
+                return [item['text'].strip() for item in data.get('questions', [])]
+        except Exception as e:
+            print(f"Error reading questions file {file_path}: {e}")
+            return []
 
-    # Citește întrebările și răspunsurile
-    intrebari = citeste_word("C:/FACULTATE/futuo/intrebari.docx")
-    raspunsuri = citeste_word("C:/FACULTATE/futuo/raspunsuri.docx")
+    @staticmethod
+    def read_answers(file_path):
+        """Read answers from JSON file"""
+        try:
+            with open(file_path, 'r') as file:
+                data = json.load(file)
+                return [item['text'].strip() for item in data.get('answers', [])]
+        except Exception as e:
+            print(f"Error reading answers file {file_path}: {e}")
+            return []
 
-    # Verifică dacă numărul de întrebări și răspunsuri este egal
-    if len(intrebari) != len(raspunsuri):
-        print("Numărul de întrebări nu corespunde cu numărul de răspunsuri!")
-        return {}
+class QuestionMatcher:
+    @staticmethod
+    def find_best_matches(user_input, questions, threshold=60):
+        """Find the best matching questions for user input"""
+        matches = []
+        for question in questions:
+            score = fuzz.token_sort_ratio(user_input, question.lower())
+            if score >= threshold:
+                matches.append((question, score))
+        
+        matches.sort(key=lambda x: x[1], reverse=True)
+        return matches
 
-    # Creează dicționarul
-    return {intrebari[i].lower(): raspunsuri[i] for i in range(len(intrebari))}
+class ChatbotDatabase:
+    def __init__(self, questions_path, answers_path):
+        self.questions_path = questions_path
+        self.answers_path = answers_path
+        self.doc_reader = DocumentReader()
+        self.questions = []
+        self.answers = []
+        self.responses = {}
+        self.load_data()
 
+    def load_data(self):
+        """Load and initialize the QA database"""
+        if not os.path.exists(self.questions_path) or not os.path.exists(self.answers_path):
+            print("One or both files do not exist!")
+            return
 
-#functia care mi permite sa pun si jumate din intrebare
-def find_best_matches(user_input, intrebari, threshold=70):
-    """
-    Căutăm cele mai bune potriviri pentru întrebarea utilizatorului.
-    returnează întrebările care au un scor mai mare decât pragul.
-    """
-    matches = []
+        self.questions = self.doc_reader.read_questions(self.questions_path)
+        self.answers = self.doc_reader.read_answers(self.answers_path)
 
-    # Iterăm prin întrebările din fișier și calculăm scorul pentru fiecare
-    for intrebare in intrebari:
-        # Comparăm întrebarea utilizatorului cu fiecare întrebare din fișier
-        scor = fuzz.token_sort_ratio(user_input, intrebare.lower())
+        if len(self.questions) != len(self.answers):
+            print("The number of questions does not match the number of answers!")
+            return
 
-        # Dacă scorul este suficient de mare (pragul de 70)
-        if scor >= 60:
-            matches.append((intrebare, scor))
+        self.responses = {q.lower(): a for q, a in zip(self.questions, self.answers)}
 
-    # Sortăm potrivirile după scor, în ordine descrescătoare
-    matches.sort(key=lambda x: x[1], reverse=True)
+class Chatbot:
+    def __init__(self):
+        resource_manager = ResourceManager()
+        self.json_path1 = resource_manager.get_resource_path('raspunsuri.json')
+        self.json_path2 = resource_manager.get_resource_path('intrebari.json')
+        self.web_folder = resource_manager.get_resource_path('web')
+        self.database = ChatbotDatabase(self.json_path2, self.json_path1)
+        self.date_provider = DateProvider()
+        self.matcher = QuestionMatcher()
 
-    return matches
+    def initialize_web(self):
+        """Initialize the eel web interface"""
+        eel.init(self.web_folder)
 
+    def query_openai(self, user_input):
+        """Interoghează OpenAI GPT pentru un răspuns"""
+        try:
+            # Noul format al interogării pentru GPT-4
+            response = openai.ChatCompletion.create(
+                model="gpt-4",
+                messages=[
+                    {"role": "system", "content": "Ești un asistent util care răspunde la întrebări."},
+                    {"role": "user", "content": user_input}
+                ],
+                max_tokens=150,
+                temperature=0.7
+            )
+            return response['choices'][0]['message']['content']
+        except Exception as e:
+            return f"Eroare în interogarea OpenAI: {e}"
 
-def chatbot():
-
-    # Specificați căile către fișierele Word
-    intrebari = citeste_word("C:/FACULTATE/futuo/intrebari.docx")
-    raspunsuri = citeste_word("C:/FACULTATE/futuo/raspunsuri.docx")
-
-    # Creează dicționarul de răspunsuri
-    responses = creeaza_dictionar_raspunsuri("C:/FACULTATE/futuo/intrebari.docx", "C:/FACULTATE/futuo/raspunsuri.docx")
-
-    if not responses:
-        print("Nu s-a putut initializa chatbot-ul!")
-        return
-
-    print("Chatbot inițializat! Tastează 'exit' pentru a ieși.")
-#aici e magia
-    while True:
-        user_input = input("Tu: ").lower()
-
+    def process_input(self, user_input):
+        """Process user input and return appropriate response"""
         if user_input == 'exit':
-            print("La revedere!")
-            break
+            return "See you!"
+        
+        if user_input == 'data':
+            return self.date_provider.get_date()
 
-        # Caută răspunsul în dicționar
-        matching_questions = find_best_matches(user_input, intrebari)
-
+        matching_questions = self.matcher.find_best_matches(user_input, self.database.questions)
+        
         if matching_questions:
-            # Alege întrebarea cu cel mai bun scor
-            best_match_question = matching_questions[0][0]  # Prima potrivire
-            index = intrebari.index(best_match_question)
-            raspuns = raspunsuri[index]
-        else:
-            raspuns = "Îmi pare rău, nu știu să răspund la această întrebare."
+            best_match_question = matching_questions[0][0]
+            index = self.database.questions.index(best_match_question)
+            # Call the C++ function to identify the source module
+            if 0 <= index <= 179:
+                if self.date_provider.lib:
+                    source = self.date_provider.lib.identify_source_module(index).decode('utf-8')
+                    return f"{self.database.answers[index]} (Source: {source})"
+            else:
+                return self.database.answers[index]
+        
+        # Dacă nu există potriviri, apelează API-ul OpenAI
+        return self.query_openai(user_input)
 
-        print("Chatbot:", raspuns)
+def main():
+    chatbot = Chatbot()
+    chatbot.initialize_web()
+    
+    # Expose the process_input method to JavaScript
+    @eel.expose
+    def chatbot_response(user_input):
+        return chatbot.process_input(user_input)
+    
+    # Start the web application
+    eel.start('index.html', size=(1920, 1080), port=0)
 
-chatbot()
-
+if __name__ == "__main__":
+    main()

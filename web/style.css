@@ -1,0 +1,240 @@
+/* import google font - Poppins */
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap");
+
+/* Set default values for margin, padding, and font for all elements */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+}
+
+/* Background color for the body */
+body {
+  background: aliceblue;
+}
+
+/* Button that toggles the chatbot visibility */
+.chatbot-toggler {
+  position: fixed; /* Fixed position on the screen */
+  right: 40px; /* Distance from the right edge of the screen */
+  bottom: 35px; /* Distance from the bottom edge of the screen */
+  height: 50px;
+  width: 50px;
+  color: #fff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+  cursor: pointer;
+  background: rgb(206, 118, 241); /* Button background color */
+  border-radius: 50%; /* Makes the button circular */
+}
+
+/* Animation for the toggle button icon */
+.chatbot-toggler span {
+  position: absolute;
+}
+
+/* Behavior of the button icon when the chatbot is visible */
+.show-chatbot .chatbot-toggler span:first-child,
+.chatbot-toggler span:last-child {
+  opacity: 0; /* Hides the first icon */
+}
+.show-chatbot .chatbot-toggler span:last-child {
+  opacity: 1; /* Shows the second icon when the chatbot is visible */
+}
+
+/* Chatbot container */
+.chatbot {
+  position: fixed;
+  top: 50%; /* Centers the chatbot vertically */
+  left: 50%; /* Centers the chatbot horizontally */
+  transform: translate(-50%, -50%); /* Perfect centering */
+  width: 90%; /* Sets the width to 90% of the screen */
+  max-width: 820px; /* Sets the maximum width to 820px for large screens */
+  height: 80%; /* Sets the height to 80% of the screen */
+  max-height: 650px; /* Limits the height to 650px */
+  opacity: 0;
+  pointer-events: none; /* Prevents interaction with the chatbot when hidden */
+  overflow: hidden; /* Prevents content from overflowing the container */
+  background: #fff;
+  border-radius: 15px;
+  box-shadow: 0 0 128px rgba(0, 0, 0, 1), 0 32px 64px -48px rgba(0, 0, 0, 0.5); /* Adds shadow for floating effect */
+}
+
+/* When the chatbot is visible */
+.show-chatbot .chatbot {
+  opacity: 1;
+  pointer-events: auto; /* Allows interaction with the chatbot when visible */
+}
+
+/* Header of the chatbot */
+.chatbot header {
+  background-color: rgb(70, 84, 244); /* Header background color */
+  padding: 16px 0;
+  text-align: center;
+  position: relative;
+}
+
+/* Title inside the header */
+.chatbot header h2 {
+  color: #fff;
+  font-size: 1.4rem;
+}
+
+/* Close button in the header */
+.chatbot header span {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  color: #fff;
+  cursor: pointer;
+  display: none; /* Initially hidden */
+  transform: translateY(-50%); /* Centers it vertically */
+}
+
+/* Chatbox container for messages */
+.chatbot .chatbox {
+  height: 510px;
+  overflow-y: auto; /* Enables vertical scrolling for messages */
+  padding: 30px 20px 70px;
+}
+
+/* Styling for individual chat messages */
+.chatbox .chat {
+  display: flex;
+}
+
+/* Styling for incoming chat messages */
+.chatbox .incoming span {
+  height: 32px;
+  width: 32px;
+  color: #fff;
+  background: rgb(
+    94,
+    96,
+    124
+  ); /* Background color for incoming message avatar */
+  text-align: center;
+  line-height: 32px;
+  border-radius: 4px;
+  margin: 0 10px 7px 0;
+}
+
+/* Outgoing chat messages */
+.chatbox .outgoing {
+  margin: 40px 20px;
+  justify-content: flex-end; /* Aligns outgoing messages to the right */
+}
+
+/* Styling for outgoing messages */
+.chatbox .chat p {
+  color: #fff;
+  max-width: 75%;
+  white-space: pre-wrap;
+  font-size: 0.95rem;
+  padding: 12px 16px;
+  border-radius: 10px 10px 0 10px;
+  background: rgb(70, 84, 244); /* Background color for outgoing messages */
+}
+
+/* Styling for incoming chat messages */
+.chatbox .incoming p {
+  color: black;
+  background: #f2f2f2; /* Background color for incoming messages */
+  border-radius: 10px 10px 10px 0;
+}
+
+/* Chat input area */
+.chatbot .chat-input {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  display: flex;
+  gap: 5px;
+  background: #fff;
+  padding: 5px 20px;
+  border-top: 1px solid #ccc;
+}
+
+/* Textarea for user input */
+.chat-input textarea {
+  height: 55px;
+  width: 100%;
+  border: none;
+  outline: none;
+  font-size: 0.95rem;
+  resize: none;
+  padding: 16px 15px 16px 0;
+}
+
+/* Send button icon */
+.chat-input span {
+  align-self: flex-end;
+  height: 55px;
+  line-height: 55px;
+  color: rgb(70, 84, 244);
+  font-size: 1.35rem;
+  cursor: pointer;
+  visibility: hidden; /* Hidden by default */
+}
+
+/* Show the send button when the textarea is valid (not empty) */
+.chat-input textarea:valid ~ span {
+  visibility: visible;
+}
+
+/* Media queries for responsiveness */
+
+/* Adjustments for tablets and smaller devices */
+@media (max-width: 1024px) {
+  .chatbot {
+    width: 80%; /* Reduce width for tablets */
+    height: 70%; /* Reduce height for tablets */
+  }
+}
+
+/* For tablets and smaller devices (max-width: 768px) */
+@media (max-width: 768px) {
+  .chatbot {
+    top: 50%; /* Centers the chatbot vertically */
+    left: 50%; /* Centers the chatbot horizontally */
+    transform: translate(-50%, -50%); /* Perfect centering */
+    width: 100%; /* 100% width for smaller screens */
+    height: 80%; /* Adjusts height for smaller devices */
+    border-radius: 0;
+  }
+  .chatbox {
+    height: calc(
+      100% - 100px
+    ); /* Adjusts chatbox height to avoid occupying full space */
+  }
+
+  .chat-input {
+    padding: 10px;
+  }
+}
+
+/* For mobile devices (max-width: 490px) */
+@media (max-width: 490px) {
+  .chatbot {
+    /* Centers the chatbot perfectly */
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 80%;
+    border-radius: 0;
+  }
+
+  .chatbot .chatbox {
+    height: 90%; /* Ensures the chatbox takes up most of the space */
+  }
+
+  .chatbot header h2 {
+    font-size: 1.2rem; /* Resizes title for small screens */
+  }
+  .chatbot .chatbox .chat p {
+    font-size: 0.85rem; /* Reduces font size for very small screens */
+  }
+}
