@@ -84,7 +84,7 @@ class DocumentReader:
 
 class QuestionMatcher:
     @staticmethod
-    def find_best_matches(user_input, questions, threshold=60):
+    def find_best_matches(user_input, questions, threshold=70):
         """Find the best matching questions for user input"""
         matches = []
         for question in questions:
@@ -137,11 +137,11 @@ class Chatbot:
     def query_openai(self, user_input):
         """Interoghează OpenAI GPT pentru un răspuns"""
         try:
-            # Noul format al interogării pentru GPT-4
+            #format interogare pentru GPT-4
             response = openai.ChatCompletion.create(
                 model="gpt-4",
                 messages=[
-                    {"role": "system", "content": "Ești un asistent util care răspunde la întrebări."},
+                    {"role": "system", "content": "You are a helpful assistant. Always respond in English."},
                     {"role": "user", "content": user_input}
                 ],
                 max_tokens=150,
@@ -153,10 +153,10 @@ class Chatbot:
 
     def process_input(self, user_input):
         """Process user input and return appropriate response"""
-        if user_input == 'exit':
+        if user_input == 'exit' or user_input == 'Exit':
             return "See you!"
         
-        if user_input == 'data':
+        if user_input == 'What day is today?':
             return self.date_provider.get_date()
 
         matching_questions = self.matcher.find_best_matches(user_input, self.database.questions)
@@ -185,7 +185,7 @@ def main():
         return chatbot.process_input(user_input)
     
     # Start the web application
-    eel.start('index.html', size=(1920, 1080), port=0)
+    eel.start('index.html', size=(1920, 1080))
 
 if __name__ == "__main__":
     main()
