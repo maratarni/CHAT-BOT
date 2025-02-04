@@ -84,7 +84,7 @@ class DocumentReader:
 
 class QuestionMatcher:
     @staticmethod
-    def find_best_matches(user_input, questions, threshold=70):
+    def find_best_matches(user_input, questions, threshold=75):
         """Find the best matching questions for user input"""
         matches = []
         for question in questions:
