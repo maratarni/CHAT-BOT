@@ -123,57 +123,75 @@ class ChatbotDatabase:
 class Chatbot:
     def __init__(self):
         resource_manager = ResourceManager()
-        self.json_path1 = resource_manager.get_resource_path('raspunsuri.json')
-        self.json_path2 = resource_manager.get_resource_path('intrebari.json')
+        self.json_path1 = resource_manager.get_resource_path('answers.json')
+        self.json_path2 = resource_manager.get_resource_path('questions.json')
         self.web_folder = resource_manager.get_resource_path('web')
         self.database = ChatbotDatabase(self.json_path2, self.json_path1)
         self.date_provider = DateProvider()
         self.matcher = QuestionMatcher()
+        self.conversation_history = []  # Conversation history
 
     def initialize_web(self):
         """Initialize the eel web interface"""
         eel.init(self.web_folder)
 
     def query_openai(self, user_input):
-        """Interoghează OpenAI GPT pentru un răspuns"""
+        """Query OpenAI using conversation history"""
         try:
-            #format interogare pentru GPT-4
+            # Add conversation context
+            messages = [{"role": "system", "content": "You are a helpful assistant. Always respond in English."}]
+            messages.extend(self.conversation_history)  # Add conversation history
+            messages.append({"role": "user", "content": user_input})  # Add new message
+
             response = openai.ChatCompletion.create(
-                model="gpt-4",
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant. Always respond in English."},
-                    {"role": "user", "content": user_input}
-                ],
-                max_tokens=150,
+                model="gpt-3.5-turbo",
+                messages=messages,
+                max_tokens=200,
                 temperature=0.7
             )
-            return response['choices'][0]['message']['content']
+            
+            reply = response['choices'][0]['message']['content']
+            
+            # Save answer in conversation history
+            self.conversation_history.append({"role": "user", "content": user_input})
+            self.conversation_history.append({"role": "assistant", "content": reply})
+
+            return reply
         except Exception as e:
-            return f"Eroare în interogarea OpenAI: {e}"
+            return f"Error querying OpenAI: {e}"
+
 
     def process_input(self, user_input):
-        """Process user input and return appropriate response"""
-        if user_input == 'exit' or user_input == 'Exit':
+        """Process user input and return the correct answer from the database"""
+        if user_input.lower() == 'exit':
             return "See you!"
         
         if user_input == 'What day is today?':
-            return self.date_provider.get_date()
+            response = self.date_provider.get_date()
+            self.conversation_history.append({"role": "user", "content": user_input})
+            self.conversation_history.append({"role": "assistant", "content": response})
+            return response
 
         matching_questions = self.matcher.find_best_matches(user_input, self.database.questions)
-        
+
         if matching_questions:
             best_match_question = matching_questions[0][0]
             index = self.database.questions.index(best_match_question)
-            # Call the C++ function to identify the source module
-            if 0 <= index <= 179:
-                if self.date_provider.lib:
-                    source = self.date_provider.lib.identify_source_module(index).decode('utf-8')
-                    return f"{self.database.answers[index]} (Source: {source})"
-            else:
-                return self.database.answers[index]
-        
-        # Dacă nu există potriviri, apelează API-ul OpenAI
+            response = self.database.answers[index]
+
+            if 0 <= index <= 179 and self.date_provider.lib:
+                source = self.date_provider.lib.identify_source_module(index).decode('utf-8')
+                response = f"{response} (Source: {source})"
+
+            # Salvează în istoric
+            self.conversation_history.append({"role": "user", "content": user_input})
+            self.conversation_history.append({"role": "assistant", "content": response})
+
+            return response
+
+        # If there are no matches in the databse, qeury OpenAI
         return self.query_openai(user_input)
+
 
 def main():
     chatbot = Chatbot()
